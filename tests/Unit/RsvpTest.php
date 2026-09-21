@@ -63,4 +63,14 @@ final class RsvpTest extends TestCase
         $this->assertSame(RsvpStatus::Yes, Rsvp::fromArray($this->payload(['status' => 'yes']))->status);
         $this->assertSame(RsvpStatus::No, Rsvp::fromArray($this->payload(['status' => 'no']))->status);
     }
+
+    public function test_it_falls_back_to_yes_for_an_unknown_status(): void
+    {
+        $this->assertSame(RsvpStatus::Yes, Rsvp::fromArray($this->payload(['status' => 'maybe-later']))->status);
+    }
+
+    public function test_it_falls_back_to_yes_when_the_status_is_missing(): void
+    {
+        $this->assertSame(RsvpStatus::Yes, Rsvp::fromArray($this->payload(['status' => null]))->status);
+    }
 }

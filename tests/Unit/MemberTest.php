@@ -90,4 +90,17 @@ final class MemberTest extends TestCase
         $this->assertSame([], $member->categories);
         $this->assertSame('', $member->email);
     }
+
+    public function test_it_falls_back_to_full_for_an_unknown_member_type(): void
+    {
+        $member = Member::fromArray($this->payload(['member_type' => 'guest']));
+
+        $this->assertSame(MemberType::Full, $member->memberType);
+    }
+
+    public function test_it_falls_back_to_full_when_the_member_type_is_missing_or_not_a_string(): void
+    {
+        $this->assertSame(MemberType::Full, Member::fromArray($this->payload(['member_type' => null]))->memberType);
+        $this->assertSame(MemberType::Full, Member::fromArray($this->payload(['member_type' => 7]))->memberType);
+    }
 }

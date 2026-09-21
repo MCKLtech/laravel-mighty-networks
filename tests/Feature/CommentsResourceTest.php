@@ -178,4 +178,35 @@ final class CommentsResourceTest extends TestCase
 
         $resource->findById(7, 55);
     }
+
+    public function test_paginate_reactions_yields_reactions_across_pages(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->reactionPayload(['id' => 1])],
+                'links' => ['next' => 'https://api.mn.co/...?page=2'],
+            ], 200),
+            MockResponse::make([
+                'items' => [$this->reactionPayload(['id' => 2])],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new CommentsResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        foreach ($resource->paginateReactions(55, perPage: 10)->items() as $reaction) {
+            $this->assertInstanceOf(Reaction::class, $reaction);
+            $ids[] = $reaction->id;
+        }
+
+        $this->assertSame([1, 2], $ids);
+        $mock->assertSentCount(2);
+        $mock->assertSent(function ($request): bool {
+            return $request instanceof ListCommentReactionsRequest
+                && $request->resolveEndpoint() === 'networks/12345/comments/55/reactions'
+                && $request->query()->get('per_page') === 10;
+        });
+    }
 }

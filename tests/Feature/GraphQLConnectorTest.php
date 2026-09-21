@@ -6,8 +6,11 @@ namespace MCKLtech\MightyNetworks\Tests\Feature;
 
 use MCKLtech\MightyNetworks\Exceptions\AuthenticationException;
 use MCKLtech\MightyNetworks\Exceptions\ComplexityException;
+use MCKLtech\MightyNetworks\Exceptions\ForbiddenException;
 use MCKLtech\MightyNetworks\Exceptions\GraphQLException;
+use MCKLtech\MightyNetworks\Exceptions\NotFoundException;
 use MCKLtech\MightyNetworks\Exceptions\RateLimitException;
+use MCKLtech\MightyNetworks\Exceptions\ValidationException;
 use MCKLtech\MightyNetworks\Tests\Support\TestGraphQLRequest;
 use MCKLtech\MightyNetworks\Tests\TestCase;
 use Saloon\Http\Faking\MockClient;
@@ -103,6 +106,74 @@ final class GraphQLConnectorTest extends TestCase
         $this->expectException(ComplexityException::class);
 
         $this->graphql($mock)->send(new TestGraphQLRequest);
+    }
+
+    public function test_a_forbidden_error_maps_to_a_forbidden_exception(): void
+    {
+        $this->expectException(ForbiddenException::class);
+
+        $this->graphql($this->graphqlError('FORBIDDEN', 'Not allowed.'))->send(new TestGraphQLRequest);
+    }
+
+    public function test_a_not_found_error_maps_to_a_not_found_exception(): void
+    {
+        $this->expectException(NotFoundException::class);
+
+        $this->graphql($this->graphqlError('NOT_FOUND', 'Missing.'))->send(new TestGraphQLRequest);
+    }
+
+    public function test_a_bad_user_input_error_maps_to_a_validation_exception(): void
+    {
+        $this->expectException(ValidationException::class);
+
+        $this->graphql($this->graphqlError('BAD_USER_INPUT', 'Invalid input.'))->send(new TestGraphQLRequest);
+    }
+
+    private function graphqlError(string $code, string $message): MockClient
+    {
+        return new MockClient([
+            MockResponse::make([
+                'data' => null,
+                'errors' => [[
+                    'message' => $message,
+                    'path' => ['members'],
+                    'extensions' => ['code' => $code],
+                ]],
+            ], 200),
+        ]);
+    }
+
+    public function test_extract_errors_ignores_non_array_entries_and_from_response_uses_the_first_message(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'data' => null,
+                'errors' => ['not-an-object', ['message' => 'Real failure', 'path' => ['members']]],
+            ], 200),
+        ]);
+
+        try {
+            $this->graphql($mock)->send(new TestGraphQLRequest);
+
+            $this->fail('Expected a GraphQLException to be thrown.');
+        } catch (GraphQLException $exception) {
+            $this->assertSame([['message' => 'Real failure', 'path' => ['members']]], $exception->errors());
+            $this->assertSame('GraphQL error: Real failure', $exception->getMessage());
+
+            $rebuilt = GraphQLException::fromResponse($exception->getResponse());
+
+            $this->assertSame([['message' => 'Real failure', 'path' => ['members']]], $rebuilt->errors());
+        }
+    }
+
+    public function test_extract_errors_returns_empty_for_a_non_json_body(): void
+    {
+        $mock = new MockClient([MockResponse::make('not-json', 200)]);
+
+        $response = $this->graphql($mock)->send(new TestGraphQLRequest);
+
+        $this->assertSame([], GraphQLException::extractErrors($response));
+        $this->assertSame([], GraphQLException::fromResponse($response)->errors());
     }
 
     public function test_a_http_200_without_errors_is_successful(): void

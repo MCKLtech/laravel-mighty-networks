@@ -9,6 +9,7 @@ use MCKLtech\MightyNetworks\DataTransferObjects\NewPollData;
 use MCKLtech\MightyNetworks\DataTransferObjects\Poll;
 use MCKLtech\MightyNetworks\DataTransferObjects\UpdatePollData;
 use MCKLtech\MightyNetworks\Enums\PollType;
+use MCKLtech\MightyNetworks\Exceptions\NotFoundException;
 use MCKLtech\MightyNetworks\Requests\Admin\Polls\CreatePollRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Polls\DeletePollRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Polls\GetPollRequest;
@@ -190,5 +191,45 @@ final class PollsResourceTest extends TestCase
 
         $this->assertSame([1, 2], $ids);
         $mock->assertSentCount(2);
+    }
+
+    public function test_find_by_id_or_null_returns_null_on_a_404(): void
+    {
+        $mock = new MockClient([MockResponse::make(['error' => 'Poll not found'], 404)]);
+
+        $resource = new PollsResource($this->admin($mock), '12345');
+
+        $this->assertNull($resource->findByIdOrNull(11));
+    }
+
+    public function test_each_runs_a_callback_over_every_poll(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->pollPayload(['id' => 1])],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new PollsResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        $resource->each(static function (Poll $poll) use (&$ids): void {
+            $ids[] = $poll->id;
+        });
+
+        $this->assertSame([1], $ids);
+    }
+
+    public function test_a_404_throws_a_not_found_exception(): void
+    {
+        $mock = new MockClient([MockResponse::make(['error' => 'Poll not found'], 404)]);
+
+        $resource = new PollsResource($this->admin($mock), '12345');
+
+        $this->expectException(NotFoundException::class);
+
+        $resource->findById(11);
     }
 }

@@ -250,4 +250,58 @@ final class OAuthFlowTest extends TestCase
 
         $connector->send(new TestGraphQLRequest);
     }
+
+    public function test_the_oauth_connector_exposes_the_discovery_and_authorization_endpoints(): void
+    {
+        $connector = new OAuthConnector('acme');
+
+        $this->assertSame('https://acme.mn.co', $connector->resolveBaseUrl());
+        $this->assertSame('https://acme.mn.co/.well-known/oauth-authorization-server', $connector->discoveryUrl());
+        $this->assertSame('https://acme.mn.co/oauth/authorize', $connector->authorizationEndpoint());
+    }
+
+    public function test_the_oauth_client_exposes_its_connector(): void
+    {
+        $connector = new OAuthConnector('acme');
+        $client = new OAuthClient(connector: $connector, clientId: 'id');
+
+        $this->assertSame($connector, $client->connector());
+    }
+
+    public function test_authorization_url_omits_optional_parameters_when_unset(): void
+    {
+        $client = new OAuthClient(
+            connector: new OAuthConnector('acme'),
+            clientId: 'client-id',
+        );
+
+        $url = $client->authorizationUrl(state: 'state-123');
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+
+        $this->assertSame('code', $query['response_type']);
+        $this->assertSame('client-id', $query['client_id']);
+        $this->assertSame('state-123', $query['state']);
+        $this->assertArrayNotHasKey('redirect_uri', $query);
+        $this->assertArrayNotHasKey('scope', $query);
+        $this->assertArrayNotHasKey('code_challenge', $query);
+        $this->assertArrayNotHasKey('code_challenge_method', $query);
+    }
+
+    public function test_a_token_response_without_an_access_token_is_rejected(): void
+    {
+        $mock = new MockClient([MockResponse::make(['refresh_token' => 'refresh-1'], 200)]);
+
+        $this->expectException(AuthenticationException::class);
+
+        $this->oauthClient($mock)->exchangeCode('auth-code');
+    }
+
+    public function test_a_non_json_token_response_is_rejected(): void
+    {
+        $mock = new MockClient([MockResponse::make('not-json', 200)]);
+
+        $this->expectException(AuthenticationException::class);
+
+        $this->oauthClient($mock)->exchangeCode('auth-code');
+    }
 }

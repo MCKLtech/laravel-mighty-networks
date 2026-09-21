@@ -416,4 +416,106 @@ final class PlansResourceTest extends TestCase
 
         $this->assertSame([1], $ids);
     }
+
+    public function test_paginate_members_yields_plan_members_across_pages(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->memberPayload()],
+                'links' => ['next' => 'https://api.mn.co/...?page=2'],
+            ], 200),
+            MockResponse::make([
+                'items' => [$this->memberPayload()],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new PlansResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        foreach ($resource->paginateMembers(7, perPage: 10)->items() as $member) {
+            $this->assertInstanceOf(Member::class, $member);
+            $ids[] = $member->id;
+        }
+
+        $this->assertSame([42, 42], $ids);
+        $mock->assertSentCount(2);
+        $mock->assertSent(function ($request): bool {
+            return $request instanceof ListPlanMembersRequest
+                && $request->resolveEndpoint() === 'networks/12345/plans/7/members'
+                && $request->query()->get('per_page') === 10;
+        });
+    }
+
+    public function test_each_member_runs_a_callback_over_every_plan_member(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->memberPayload()],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new PlansResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        $resource->eachMember(7, static function (Member $member) use (&$ids): void {
+            $ids[] = $member->id;
+        });
+
+        $this->assertSame([42], $ids);
+    }
+
+    public function test_paginate_invites_yields_plan_invites_across_pages(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->invitePayload(['id' => 1])],
+                'links' => ['next' => 'https://api.mn.co/...?page=2'],
+            ], 200),
+            MockResponse::make([
+                'items' => [$this->invitePayload(['id' => 2])],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new PlansResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        foreach ($resource->paginateInvites(7, perPage: 10)->items() as $invite) {
+            $this->assertInstanceOf(Invite::class, $invite);
+            $ids[] = $invite->id;
+        }
+
+        $this->assertSame([1, 2], $ids);
+        $mock->assertSentCount(2);
+        $mock->assertSent(function ($request): bool {
+            return $request instanceof ListPlanInvitesRequest
+                && $request->resolveEndpoint() === 'networks/12345/plans/7/invites'
+                && $request->query()->get('per_page') === 10;
+        });
+    }
+
+    public function test_each_invite_runs_a_callback_over_every_plan_invite(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->invitePayload(['id' => 11])],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new PlansResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        $resource->eachInvite(7, static function (Invite $invite) use (&$ids): void {
+            $ids[] = $invite->id;
+        });
+
+        $this->assertSame([11], $ids);
+    }
 }

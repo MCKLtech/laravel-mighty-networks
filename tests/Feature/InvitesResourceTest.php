@@ -8,6 +8,7 @@ use MCKLtech\MightyNetworks\Collections\InviteCollection;
 use MCKLtech\MightyNetworks\DataTransferObjects\Invite;
 use MCKLtech\MightyNetworks\DataTransferObjects\NewInviteData;
 use MCKLtech\MightyNetworks\DataTransferObjects\UpdateInviteData;
+use MCKLtech\MightyNetworks\Exceptions\ValidationException;
 use MCKLtech\MightyNetworks\Requests\Admin\Invites\CreateInviteRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Invites\DeleteInviteRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Invites\ListInvitesRequest;
@@ -176,5 +177,56 @@ final class InvitesResourceTest extends TestCase
 
         $this->assertSame([1, 2], $ids);
         $mock->assertSentCount(2);
+    }
+
+    public function test_each_runs_a_callback_over_every_invite(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->invitePayload(['id' => 1])],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new InvitesResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        $resource->each(static function (Invite $invite) use (&$ids): void {
+            $ids[] = $invite->id;
+        });
+
+        $this->assertSame([1], $ids);
+    }
+
+    public function test_each_passes_the_email_filter_to_the_list_request(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->invitePayload(['id' => 1])],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new InvitesResource($this->admin($mock), '12345');
+
+        $resource->each(static function (): void {}, email: 'claude@example.com', perPage: 10);
+
+        $mock->assertSent(function ($request): bool {
+            return $request instanceof ListInvitesRequest
+                && $request->query()->get('email') === 'claude@example.com'
+                && $request->query()->get('per_page') === 10;
+        });
+    }
+
+    public function test_a_422_throws_a_validation_exception(): void
+    {
+        $mock = new MockClient([MockResponse::make(['error' => 'Invalid invite'], 422)]);
+
+        $resource = new InvitesResource($this->admin($mock), '12345');
+
+        $this->expectException(ValidationException::class);
+
+        $resource->create(new NewInviteData(recipientEmail: 'bad'));
     }
 }

@@ -6,6 +6,7 @@ namespace MCKLtech\MightyNetworks\Tests\Feature;
 
 use MCKLtech\MightyNetworks\Collections\GraphQLMemberCollection;
 use MCKLtech\MightyNetworks\Collections\GraphQLNodeCollection;
+use MCKLtech\MightyNetworks\Connectors\GraphQLConnector;
 use MCKLtech\MightyNetworks\DataTransferObjects\GraphQL\GraphQLMember;
 use MCKLtech\MightyNetworks\DataTransferObjects\GraphQL\GraphQLNetwork;
 use MCKLtech\MightyNetworks\DataTransferObjects\GraphQL\GraphQLNode;
@@ -242,6 +243,54 @@ final class GraphQLClientTest extends TestCase
         $mock->assertSent(function ($request): bool {
             return $request instanceof RawGraphQLRequest
                 && $request->body()->all()['variables'] === ['foo' => 'bar'];
+        });
+    }
+
+    public function test_connector_exposes_the_underlying_graphql_connector(): void
+    {
+        $connector = $this->graphql(new MockClient);
+
+        $client = new GraphQLClient($connector, '12345');
+
+        $this->assertSame($connector, $client->connector());
+        $this->assertInstanceOf(GraphQLConnector::class, $client->connector());
+    }
+
+    public function test_members_clamps_the_requested_page_size_to_the_root_limit(): void
+    {
+        $mock = new MockClient([MockResponse::make([
+            'data' => ['network' => ['members' => [
+                'nodes' => [$this->memberPayload()],
+                'pageInfo' => ['endCursor' => null, 'hasNextPage' => false],
+                'totalCount' => 1,
+            ]]],
+        ], 200)]);
+
+        $this->client($mock)->members(perPage: 100);
+
+        $mock->assertSent(function ($request): bool {
+            return $request instanceof NetworkMembersQuery
+                && $request->body()->all()['variables']['first'] === 50;
+        });
+    }
+
+    public function test_paginate_clamps_the_requested_page_size_to_the_root_limit(): void
+    {
+        $mock = new MockClient([MockResponse::make([
+            'data' => ['network' => ['members' => [
+                'nodes' => [$this->memberPayload()],
+                'pageInfo' => ['endCursor' => null, 'hasNextPage' => false],
+                'totalCount' => 1,
+            ]]],
+        ], 200)]);
+
+        foreach ($this->client($mock)->paginate(new NetworkMembersQuery('12345'), perPage: 100)->items() as $member) {
+            break;
+        }
+
+        $mock->assertSent(function ($request): bool {
+            return $request instanceof NetworkMembersQuery
+                && $request->body()->all()['variables']['first'] === 50;
         });
     }
 }

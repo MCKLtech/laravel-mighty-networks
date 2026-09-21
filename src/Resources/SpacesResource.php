@@ -33,6 +33,9 @@ use MCKLtech\MightyNetworks\Requests\Admin\Spaces\ListCourseworksRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Spaces\ListSpaceMembersRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Spaces\ListSpacesRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Spaces\RemoveSpaceMemberRequest;
+use MCKLtech\MightyNetworks\Requests\Admin\Spaces\ReplaceCourseworkRequest;
+use MCKLtech\MightyNetworks\Requests\Admin\Spaces\ReplaceSpaceMemberRequest;
+use MCKLtech\MightyNetworks\Requests\Admin\Spaces\ReplaceSpaceRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Spaces\UpdateCourseworkRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Spaces\UpdateSpaceMemberRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Spaces\UpdateSpaceRequest;
@@ -121,6 +124,16 @@ final class SpacesResource extends Resource
     }
 
     /**
+     * Fully replace a space with the supplied representation (HTTP `PUT`).
+     */
+    public function replace(int $id, UpdateSpaceData $data): Space
+    {
+        return $this->spaceFrom(
+            $this->connector()->send(new ReplaceSpaceRequest($this->networkId(), $id, $data)),
+        );
+    }
+
+    /**
      * Permanently delete a space.
      */
     public function delete(int $id): void
@@ -201,6 +214,17 @@ final class SpacesResource extends Resource
     {
         return $this->memberFrom(
             $this->connector()->send(new UpdateSpaceMemberRequest($this->networkId(), $spaceId, $userId, $data)),
+        );
+    }
+
+    /**
+     * Fully replace a member's role (and optionally profile fields) within a
+     * space (HTTP `PUT`).
+     */
+    public function replaceMember(int $spaceId, int $userId, UpdateMemberData $data): Member
+    {
+        return $this->memberFrom(
+            $this->connector()->send(new ReplaceSpaceMemberRequest($this->networkId(), $spaceId, $userId, $data)),
         );
     }
 
@@ -324,6 +348,18 @@ final class SpacesResource extends Resource
     {
         return $this->courseworkFrom(
             $this->connector()->send(new UpdateCourseworkRequest($this->networkId(), $spaceId, $courseworkId, $data)),
+        );
+    }
+
+    /**
+     * Fully replace a coursework item with the supplied representation (HTTP `PUT`).
+     */
+    public function replaceCoursework(int $spaceId, int $courseworkId, UpdateCourseworkData $data): Coursework
+    {
+        return $this->courseworkFrom(
+            $this->connector()->send(
+                new ReplaceCourseworkRequest($this->networkId(), $spaceId, $courseworkId, $data),
+            ),
         );
     }
 

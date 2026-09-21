@@ -478,4 +478,66 @@ final class PostsResourceTest extends TestCase
 
         $resource->findById(7);
     }
+
+    public function test_paginate_comments_yields_post_comments_across_pages(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->commentPayload(['id' => 1])],
+                'links' => ['next' => 'https://api.mn.co/...?page=2'],
+            ], 200),
+            MockResponse::make([
+                'items' => [$this->commentPayload(['id' => 2])],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new PostsResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        foreach ($resource->paginateComments(7, perPage: 10)->items() as $comment) {
+            $this->assertInstanceOf(Comment::class, $comment);
+            $ids[] = $comment->id;
+        }
+
+        $this->assertSame([1, 2], $ids);
+        $mock->assertSentCount(2);
+        $mock->assertSent(function ($request): bool {
+            return $request instanceof ListCommentsRequest
+                && $request->resolveEndpoint() === 'networks/12345/posts/7/comments'
+                && $request->query()->get('per_page') === 10;
+        });
+    }
+
+    public function test_paginate_reactions_yields_post_reactions_across_pages(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->reactionPayload(['id' => 1])],
+                'links' => ['next' => 'https://api.mn.co/...?page=2'],
+            ], 200),
+            MockResponse::make([
+                'items' => [$this->reactionPayload(['id' => 2])],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new PostsResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        foreach ($resource->paginateReactions(7, perPage: 10)->items() as $reaction) {
+            $this->assertInstanceOf(Reaction::class, $reaction);
+            $ids[] = $reaction->id;
+        }
+
+        $this->assertSame([1, 2], $ids);
+        $mock->assertSentCount(2);
+        $mock->assertSent(function ($request): bool {
+            return $request instanceof ListPostReactionsRequest
+                && $request->resolveEndpoint() === 'networks/12345/posts/7/reactions'
+                && $request->query()->get('per_page') === 10;
+        });
+    }
 }

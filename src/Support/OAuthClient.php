@@ -133,7 +133,10 @@ final class OAuthClient
             throw new AuthenticationException($response, 'The OAuth token endpoint rejected the request.');
         }
 
-        $data = $response->json();
+        // Decode defensively: a malformed body from the token endpoint must
+        // surface as the documented AuthenticationException, not a raw
+        // \JsonException escaping from Saloon's json() helper.
+        $data = json_decode($response->body(), true);
 
         if (! is_array($data) || ! isset($data['access_token']) || ! is_string($data['access_token']) || $data['access_token'] === '') {
             throw new AuthenticationException($response, 'The OAuth token response did not contain an access token.');

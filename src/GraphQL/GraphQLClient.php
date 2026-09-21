@@ -7,9 +7,11 @@ namespace MCKLtech\MightyNetworks\GraphQL;
 use MCKLtech\MightyNetworks\Collections\GraphQLMemberCollection;
 use MCKLtech\MightyNetworks\Collections\GraphQLNodeCollection;
 use MCKLtech\MightyNetworks\Connectors\GraphQLConnector;
+use MCKLtech\MightyNetworks\DataTransferObjects\GraphQL\GraphQLBillingPlan;
 use MCKLtech\MightyNetworks\DataTransferObjects\GraphQL\GraphQLMember;
 use MCKLtech\MightyNetworks\DataTransferObjects\GraphQL\GraphQLNetwork;
 use MCKLtech\MightyNetworks\DataTransferObjects\GraphQL\GraphQLNode;
+use MCKLtech\MightyNetworks\Enums\GraphQLMutation;
 use MCKLtech\MightyNetworks\Enums\MembershipRole;
 use MCKLtech\MightyNetworks\Enums\MemberSort;
 use MCKLtech\MightyNetworks\Enums\SortOrder;
@@ -17,6 +19,8 @@ use MCKLtech\MightyNetworks\Exceptions\GraphQLException;
 use MCKLtech\MightyNetworks\Exceptions\MightyNetworksException;
 use MCKLtech\MightyNetworks\Pagination\Contracts\GraphQLCursorPaginatable;
 use MCKLtech\MightyNetworks\Pagination\GraphQLCursorPaginator;
+use MCKLtech\MightyNetworks\Requests\GraphQL\BillingPlanQuery;
+use MCKLtech\MightyNetworks\Requests\GraphQL\GraphQLMutationRequest;
 use MCKLtech\MightyNetworks\Requests\GraphQL\GraphQLRequest;
 use MCKLtech\MightyNetworks\Requests\GraphQL\MeQuery;
 use MCKLtech\MightyNetworks\Requests\GraphQL\NetworkMembersQuery;
@@ -71,6 +75,45 @@ final class GraphQLClient
     public function raw(string $query, array $variables = []): Response
     {
         return $this->connector->send(new RawGraphQLRequest($this->networkIdOrSubdomain, $query, $variables));
+    }
+
+    /**
+     * Execute any mutation by operation, without a bespoke request class.
+     *
+     * Builds `mutation OpName($input: OpNameInput!) { opName(input: $input) { ... } }`.
+     * Pass the mutation's `input` value under the `input` key of `$variables`.
+     * A raw operation string is resolved against {@see GraphQLMutation}; when it
+     * is unknown, supply `$inputType` or an {@see \InvalidArgumentException} is
+     * thrown rather than sending an invalid document.
+     *
+     * @param  array<string, mixed>  $variables
+     *
+     * @throws \InvalidArgumentException
+     * @throws GraphQLException
+     */
+    public function mutate(
+        GraphQLMutation|string $operation,
+        array $variables = [],
+        ?Selection $selection = null,
+        ?string $inputType = null,
+    ): Response {
+        return $this->connector->send(new GraphQLMutationRequest(
+            networkIdOrSubdomain: $this->networkIdOrSubdomain,
+            operation: $operation,
+            variables: $variables,
+            selection: $selection,
+            inputType: $inputType,
+        ));
+    }
+
+    /**
+     * A billing plan tier by canonical name, or null when none matches.
+     */
+    public function billingPlan(string $canonicalName): ?GraphQLBillingPlan
+    {
+        $dto = $this->query(new BillingPlanQuery($this->networkIdOrSubdomain, $canonicalName))->dto();
+
+        return $dto instanceof GraphQLBillingPlan ? $dto : null;
     }
 
     /**

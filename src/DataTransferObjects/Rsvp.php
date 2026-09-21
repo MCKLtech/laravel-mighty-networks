@@ -39,7 +39,7 @@ final readonly class Rsvp
         return new self(
             id: (int) ($data['id'] ?? 0),
             updatedAt: self::date((string) ($data['updated'] ?? '')),
-            status: RsvpStatus::from((string) ($data['status'] ?? RsvpStatus::Yes->value)),
+            status: RsvpStatus::tryFrom((string) ($data['status'] ?? '')) ?? RsvpStatus::Yes,
             event: self::arrayOrEmpty($data, 'event'),
             member: self::arrayOrEmpty($data, 'member'),
             eventInstance: self::nullableArray($data, 'event_instance'),

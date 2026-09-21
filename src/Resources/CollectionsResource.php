@@ -18,6 +18,7 @@ use MCKLtech\MightyNetworks\Requests\Admin\Collections\DeleteCollectionGroupRequ
 use MCKLtech\MightyNetworks\Requests\Admin\Collections\GetCollectionGroupRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Collections\ListCollectionGroupsRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Collections\ReorderCollectionSpacesRequest;
+use MCKLtech\MightyNetworks\Requests\Admin\Collections\ReplaceCollectionGroupRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Collections\UpdateCollectionGroupRequest;
 use Saloon\Http\Response;
 
@@ -101,6 +102,16 @@ final class CollectionsResource extends Resource
     {
         return $this->collectionGroupFrom(
             $this->connector()->send(new UpdateCollectionGroupRequest($this->networkId(), $id, $data)),
+        );
+    }
+
+    /**
+     * Fully replace a collection with the supplied representation (HTTP `PUT`).
+     */
+    public function replace(int $id, UpdateCollectionGroupData $data): CollectionGroup
+    {
+        return $this->collectionGroupFrom(
+            $this->connector()->send(new ReplaceCollectionGroupRequest($this->networkId(), $id, $data)),
         );
     }
 

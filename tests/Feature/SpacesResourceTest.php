@@ -530,4 +530,81 @@ final class SpacesResourceTest extends TestCase
 
         $resource->findById(7);
     }
+
+    public function test_paginate_members_yields_space_members_across_pages(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->memberPayload(['id' => 1])],
+                'links' => ['next' => 'https://api.mn.co/...?page=2'],
+            ], 200),
+            MockResponse::make([
+                'items' => [$this->memberPayload(['id' => 2])],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new SpacesResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        foreach ($resource->paginateMembers(7, perPage: 10)->items() as $member) {
+            $this->assertInstanceOf(Member::class, $member);
+            $ids[] = $member->id;
+        }
+
+        $this->assertSame([1, 2], $ids);
+        $mock->assertSentCount(2);
+        $mock->assertSent(function ($request): bool {
+            return $request instanceof ListSpaceMembersRequest
+                && $request->resolveEndpoint() === 'networks/12345/spaces/7/members'
+                && $request->query()->get('per_page') === 10;
+        });
+    }
+
+    public function test_paginate_courseworks_yields_coursework_across_pages(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->courseworkPayload(['id' => 1])],
+                'links' => ['next' => 'https://api.mn.co/...?page=2'],
+            ], 200),
+            MockResponse::make([
+                'items' => [$this->courseworkPayload(['id' => 2])],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new SpacesResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        foreach ($resource->paginateCourseworks(7, type: CourseworkType::Lesson, perPage: 10)->items() as $coursework) {
+            $this->assertInstanceOf(Coursework::class, $coursework);
+            $ids[] = $coursework->id;
+        }
+
+        $this->assertSame([1, 2], $ids);
+        $mock->assertSentCount(2);
+        $mock->assertSent(function ($request): bool {
+            return $request instanceof ListCourseworksRequest
+                && $request->resolveEndpoint() === 'networks/12345/spaces/7/courseworks'
+                && $request->query()->get('type') === 'lesson'
+                && $request->query()->get('per_page') === 10;
+        });
+    }
+
+    public function test_all_returns_an_empty_typed_collection_for_an_empty_page(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make(['items' => [], 'links' => ['next' => null]], 200),
+        ]);
+
+        $resource = new SpacesResource($this->admin($mock), '12345');
+
+        $spaces = $resource->all();
+
+        $this->assertInstanceOf(SpaceCollection::class, $spaces);
+        $this->assertCount(0, $spaces);
+    }
 }

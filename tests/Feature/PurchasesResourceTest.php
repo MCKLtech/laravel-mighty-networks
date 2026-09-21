@@ -191,4 +191,24 @@ final class PurchasesResourceTest extends TestCase
         $this->assertSame([1, 2], $ids);
         $mock->assertSentCount(2);
     }
+
+    public function test_each_runs_a_callback_over_every_purchase(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->purchasePayload()],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new PurchasesResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        $resource->each(static function (Purchase $purchase) use (&$ids): void {
+            $ids[] = $purchase->purchase->id;
+        });
+
+        $this->assertSame([777], $ids);
+    }
 }

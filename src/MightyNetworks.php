@@ -12,6 +12,7 @@ use MCKLtech\MightyNetworks\Connectors\GraphQLConnector;
 use MCKLtech\MightyNetworks\Contracts\TokenStore;
 use MCKLtech\MightyNetworks\Exceptions\MightyNetworksException;
 use MCKLtech\MightyNetworks\GraphQL\GraphQLClient;
+use MCKLtech\MightyNetworks\Resources\AbuseReportsResource;
 use MCKLtech\MightyNetworks\Resources\AssetsResource;
 use MCKLtech\MightyNetworks\Resources\BadgesResource;
 use MCKLtech\MightyNetworks\Resources\CollectionsResource;
@@ -20,6 +21,7 @@ use MCKLtech\MightyNetworks\Resources\CustomFieldsResource;
 use MCKLtech\MightyNetworks\Resources\EventsResource;
 use MCKLtech\MightyNetworks\Resources\InvitesResource;
 use MCKLtech\MightyNetworks\Resources\MembersResource;
+use MCKLtech\MightyNetworks\Resources\NetworkResource;
 use MCKLtech\MightyNetworks\Resources\PlansResource;
 use MCKLtech\MightyNetworks\Resources\PollsResource;
 use MCKLtech\MightyNetworks\Resources\PostsResource;
@@ -45,6 +47,8 @@ final class MightyNetworks
 
     private ?GraphQLClient $graphqlClient = null;
 
+    private ?AbuseReportsResource $abuseReportsResource = null;
+
     private ?AssetsResource $assetsResource = null;
 
     private ?BadgesResource $badgesResource = null;
@@ -60,6 +64,8 @@ final class MightyNetworks
     private ?InvitesResource $invitesResource = null;
 
     private ?MembersResource $membersResource = null;
+
+    private ?NetworkResource $networkResource = null;
 
     private ?PlansResource $plansResource = null;
 
@@ -231,6 +237,14 @@ final class MightyNetworks
     }
 
     /**
+     * The network resource, scoped to this Network.
+     */
+    public function network(): NetworkResource
+    {
+        return $this->networkResource ??= new NetworkResource($this->admin(), $this->networkId());
+    }
+
+    /**
      * The posts resource, scoped to this Network.
      */
     public function posts(): PostsResource
@@ -340,6 +354,14 @@ final class MightyNetworks
     public function assets(): AssetsResource
     {
         return $this->assetsResource ??= new AssetsResource($this->admin(), $this->networkId());
+    }
+
+    /**
+     * The abuse reports resource, scoped to this Network.
+     */
+    public function abuseReports(): AbuseReportsResource
+    {
+        return $this->abuseReportsResource ??= new AbuseReportsResource($this->admin(), $this->networkId());
     }
 
     /**

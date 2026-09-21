@@ -18,6 +18,7 @@ use MCKLtech\MightyNetworks\Enums\CustomFieldLocationGranularity;
 use MCKLtech\MightyNetworks\Enums\CustomFieldPrivacy;
 use MCKLtech\MightyNetworks\Enums\CustomFieldResponseType;
 use MCKLtech\MightyNetworks\Enums\CustomFieldStatus;
+use MCKLtech\MightyNetworks\Exceptions\NotFoundException;
 use MCKLtech\MightyNetworks\Requests\Admin\CustomFields\CreateCustomFieldAnswerRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\CustomFields\CreateCustomFieldOptionRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\CustomFields\CreateCustomFieldRequest;
@@ -357,5 +358,129 @@ final class CustomFieldsResourceTest extends TestCase
                 && $request->getMethod() === Method::DELETE
                 && $request->resolveEndpoint() === 'networks/12345/custom_fields/3/members/7/answers';
         });
+    }
+
+    public function test_find_by_id_or_null_returns_null_on_a_404(): void
+    {
+        $mock = new MockClient([MockResponse::make(['error' => 'Custom field not found'], 404)]);
+
+        $resource = new CustomFieldsResource($this->admin($mock), '12345');
+
+        $this->assertNull($resource->findByIdOrNull(3));
+    }
+
+    public function test_paginate_yields_custom_fields_across_pages(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->fieldPayload(['id' => 1])],
+                'links' => ['next' => 'https://api.mn.co/...?page=2'],
+            ], 200),
+            MockResponse::make([
+                'items' => [$this->fieldPayload(['id' => 2])],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new CustomFieldsResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        foreach ($resource->paginate(perPage: 50)->items() as $field) {
+            $this->assertInstanceOf(CustomField::class, $field);
+            $ids[] = $field->id;
+        }
+
+        $this->assertSame([1, 2], $ids);
+        $mock->assertSentCount(2);
+        $mock->assertSent(function ($request): bool {
+            return $request instanceof ListCustomFieldsRequest
+                && $request->resolveEndpoint() === 'networks/12345/custom_fields'
+                && $request->query()->get('per_page') === 50;
+        });
+    }
+
+    public function test_each_runs_a_callback_over_every_custom_field(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->fieldPayload(['id' => 1])],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new CustomFieldsResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        $resource->each(static function (CustomField $field) use (&$ids): void {
+            $ids[] = $field->id;
+        });
+
+        $this->assertSame([1], $ids);
+    }
+
+    public function test_paginate_options_uses_the_term_filter(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->optionPayload(['id' => 4])],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new CustomFieldsResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        foreach ($resource->paginateOptions(3, term: 'blu', perPage: 10)->items() as $option) {
+            $this->assertInstanceOf(CustomFieldOption::class, $option);
+            $ids[] = $option->id;
+        }
+
+        $this->assertSame([4], $ids);
+        $mock->assertSent(function ($request): bool {
+            return $request instanceof ListCustomFieldOptionsRequest
+                && $request->resolveEndpoint() === 'networks/12345/custom_fields/3/options'
+                && $request->query()->get('term') === 'blu'
+                && $request->query()->get('per_page') === 10;
+        });
+    }
+
+    public function test_paginate_answers_uses_the_member_scoped_endpoint(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->answerPayload(['id' => 5])],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new CustomFieldsResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        foreach ($resource->paginateAnswers(3, 7, perPage: 10)->items() as $answer) {
+            $this->assertInstanceOf(CustomFieldAnswer::class, $answer);
+            $ids[] = $answer->id;
+        }
+
+        $this->assertSame([5], $ids);
+        $mock->assertSent(function ($request): bool {
+            return $request instanceof ListCustomFieldAnswersRequest
+                && $request->resolveEndpoint() === 'networks/12345/custom_fields/3/members/7/answers'
+                && $request->query()->get('per_page') === 10;
+        });
+    }
+
+    public function test_a_404_throws_a_not_found_exception(): void
+    {
+        $mock = new MockClient([MockResponse::make(['error' => 'Custom field not found'], 404)]);
+
+        $resource = new CustomFieldsResource($this->admin($mock), '12345');
+
+        $this->expectException(NotFoundException::class);
+
+        $resource->findById(3);
     }
 }

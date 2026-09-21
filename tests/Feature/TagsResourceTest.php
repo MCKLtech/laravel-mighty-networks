@@ -233,6 +233,83 @@ final class TagsResourceTest extends TestCase
         });
     }
 
+    public function test_paginate_yields_tags_across_pages(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->tagPayload(['id' => 1])],
+                'links' => ['next' => 'https://api.mn.co/...?page=2'],
+            ], 200),
+            MockResponse::make([
+                'items' => [$this->tagPayload(['id' => 2])],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new TagsResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        foreach ($resource->paginate(perPage: 50)->items() as $tag) {
+            $this->assertInstanceOf(Tag::class, $tag);
+            $ids[] = $tag->id;
+        }
+
+        $this->assertSame([1, 2], $ids);
+        $mock->assertSentCount(2);
+        $mock->assertSent(function ($request): bool {
+            return $request instanceof ListTagsRequest
+                && $request->resolveEndpoint() === 'networks/12345/tags'
+                && $request->query()->get('per_page') === 50;
+        });
+    }
+
+    public function test_each_runs_a_callback_over_every_tag(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->tagPayload(['id' => 1])],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new TagsResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        $resource->each(static function (Tag $tag) use (&$ids): void {
+            $ids[] = $tag->id;
+        });
+
+        $this->assertSame([1], $ids);
+    }
+
+    public function test_paginate_for_member_uses_the_member_scoped_endpoint(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->tagPayload(['id' => 3])],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new TagsResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        foreach ($resource->paginateForMember(7, perPage: 10)->items() as $tag) {
+            $this->assertInstanceOf(Tag::class, $tag);
+            $ids[] = $tag->id;
+        }
+
+        $this->assertSame([3], $ids);
+        $mock->assertSent(function ($request): bool {
+            return $request instanceof ListMemberTagsRequest
+                && $request->resolveEndpoint() === 'networks/12345/members/7/tags'
+                && $request->query()->get('per_page') === 10;
+        });
+    }
+
     public function test_a_404_throws_a_not_found_exception(): void
     {
         $mock = new MockClient([MockResponse::make(['error' => 'Tag not found'], 404)]);

@@ -1,0 +1,694 @@
+{
+  "note": "The complete Admin REST operation surface, extracted from the public OpenAPI 3.1 spec. tests/Feature/ApiCoverageTest.php asserts every entry here maps to a request class, so a dropped endpoint fails CI instead of going unnoticed.",
+  "source": "https://api.mn.co/admin/v1/spec.json",
+  "specVersion": "3.1.0",
+  "extracted": "2026-09-21",
+  "operationCount": 137,
+  "operations": [
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/",
+      "operationId": "show_network"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/abuse_reports",
+      "operationId": "list_abuse_reports"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/assets",
+      "operationId": "create_assets"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/badges",
+      "operationId": "list_badges"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/badges",
+      "operationId": "create_badges"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/badges/{id}/",
+      "operationId": "show_badge"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/v1/networks/{network_id}/badges/{id}/",
+      "operationId": "replace_badges"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/v1/networks/{network_id}/badges/{id}/",
+      "operationId": "update_badges"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/badges/{id}/",
+      "operationId": "delete_badges"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/collections",
+      "operationId": "list_collections"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/collections",
+      "operationId": "create_collections"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/collections/{id}/",
+      "operationId": "show_collection"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/v1/networks/{network_id}/collections/{id}/",
+      "operationId": "replace_collections"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/v1/networks/{network_id}/collections/{id}/",
+      "operationId": "update_collections"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/collections/{id}/",
+      "operationId": "delete_collections"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/v1/networks/{network_id}/collections/{id}/order",
+      "operationId": "replace_collections"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/comments/{comment_id}/reactions",
+      "operationId": "list_reactions"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/comments/{comment_id}/reactions",
+      "operationId": "create_reactions"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/comments/{comment_id}/reactions",
+      "operationId": "delete_reactions"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/custom_fields",
+      "operationId": "list_custom_fields"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/custom_fields",
+      "operationId": "create_custom_fields"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/custom_fields/{custom_field_id}/members/{member_id}/answers",
+      "operationId": "list_answers"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/custom_fields/{custom_field_id}/members/{member_id}/answers",
+      "operationId": "create_answers"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/custom_fields/{custom_field_id}/members/{member_id}/answers",
+      "operationId": "delete_answers"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/custom_fields/{custom_field_id}/members/{member_id}/answers/{id}/",
+      "operationId": "show_answer"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/custom_fields/{custom_field_id}/options",
+      "operationId": "list_options"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/custom_fields/{custom_field_id}/options",
+      "operationId": "create_options"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/custom_fields/{custom_field_id}/options/{id}/",
+      "operationId": "show_option"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/v1/networks/{network_id}/custom_fields/{custom_field_id}/options/{id}/",
+      "operationId": "replace_options"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/v1/networks/{network_id}/custom_fields/{custom_field_id}/options/{id}/",
+      "operationId": "update_options"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/custom_fields/{custom_field_id}/options/{id}/",
+      "operationId": "delete_options"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/custom_fields/{id}/",
+      "operationId": "show_custom_field"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/v1/networks/{network_id}/custom_fields/{id}/",
+      "operationId": "replace_custom_fields"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/v1/networks/{network_id}/custom_fields/{id}/",
+      "operationId": "update_custom_fields"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/custom_fields/{id}/",
+      "operationId": "delete_custom_fields"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/events",
+      "operationId": "list_events"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/events",
+      "operationId": "create_events"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/events/{event_id}/rsvps",
+      "operationId": "list_rsvps"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/events/{event_id}/rsvps",
+      "operationId": "create_rsvps"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/events/{event_id}/rsvps/{id}/",
+      "operationId": "show_rsvp"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/v1/networks/{network_id}/events/{event_id}/rsvps/{id}/",
+      "operationId": "replace_rsvps"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/v1/networks/{network_id}/events/{event_id}/rsvps/{id}/",
+      "operationId": "update_rsvps"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/events/{event_id}/rsvps/{id}/",
+      "operationId": "delete_rsvps"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/events/{id}/",
+      "operationId": "show_event"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/v1/networks/{network_id}/events/{id}/",
+      "operationId": "replace_events"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/v1/networks/{network_id}/events/{id}/",
+      "operationId": "update_events"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/events/{id}/",
+      "operationId": "delete_events"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/invites",
+      "operationId": "list_invites"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/invites",
+      "operationId": "create_invites"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/v1/networks/{network_id}/invites/{id}/",
+      "operationId": "replace_invites"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/v1/networks/{network_id}/invites/{id}/",
+      "operationId": "update_invites"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/invites/{id}/",
+      "operationId": "delete_invites"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/me",
+      "operationId": "show_me"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/members",
+      "operationId": "list_members"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/members",
+      "operationId": "create_members"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/members/by_email",
+      "operationId": "show_member"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/members/{id}/",
+      "operationId": "show_member"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/v1/networks/{network_id}/members/{id}/",
+      "operationId": "replace_members"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/v1/networks/{network_id}/members/{id}/",
+      "operationId": "update_members"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/members/{id}/",
+      "operationId": "delete_members"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/members/{id}/network_membership",
+      "operationId": "delete_members"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/members/{member_id}/badges",
+      "operationId": "list_badges"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/members/{member_id}/badges",
+      "operationId": "create_badges"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/members/{member_id}/badges/{badge_id}/",
+      "operationId": "show_badge"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/members/{member_id}/badges/{badge_id}/",
+      "operationId": "delete_badges"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/members/{member_id}/password_resets",
+      "operationId": "create_password_resets"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/members/{member_id}/plans",
+      "operationId": "list_plans"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/members/{member_id}/spaces",
+      "operationId": "list_spaces"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/members/{member_id}/tags",
+      "operationId": "list_tags"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/members/{member_id}/tags",
+      "operationId": "create_tags"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/members/{member_id}/tags/{tag_id}/",
+      "operationId": "show_tag"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/members/{member_id}/tags/{tag_id}/",
+      "operationId": "delete_tags"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/plans",
+      "operationId": "list_plans"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/plans/{id}/",
+      "operationId": "show_plan"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/plans/{id}/",
+      "operationId": "delete_plans"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/plans/{plan_id}/invites",
+      "operationId": "list_invites"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/plans/{plan_id}/invites",
+      "operationId": "create_invites"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/plans/{plan_id}/invites/{id}/",
+      "operationId": "show_invite"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/v1/networks/{network_id}/plans/{plan_id}/invites/{id}/",
+      "operationId": "replace_invites"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/v1/networks/{network_id}/plans/{plan_id}/invites/{id}/",
+      "operationId": "update_invites"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/plans/{plan_id}/invites/{id}/",
+      "operationId": "delete_invites"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/plans/{plan_id}/members",
+      "operationId": "list_members"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/plans/{plan_id}/members",
+      "operationId": "create_members"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/plans/{plan_id}/members/{id}/",
+      "operationId": "delete_plans"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/plans/{plan_id}/members/{member_id}/",
+      "operationId": "show_member"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/polls",
+      "operationId": "list_polls"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/polls",
+      "operationId": "create_polls"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/polls/{id}/",
+      "operationId": "show_poll"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/v1/networks/{network_id}/polls/{id}/",
+      "operationId": "replace_polls"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/v1/networks/{network_id}/polls/{id}/",
+      "operationId": "update_polls"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/polls/{id}/",
+      "operationId": "delete_polls"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/posts",
+      "operationId": "list_posts"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/posts",
+      "operationId": "create_posts"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/posts/{id}/",
+      "operationId": "show_post"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/v1/networks/{network_id}/posts/{id}/",
+      "operationId": "replace_posts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/v1/networks/{network_id}/posts/{id}/",
+      "operationId": "update_posts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/posts/{id}/",
+      "operationId": "delete_posts"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/posts/{post_id}/comments",
+      "operationId": "list_comments"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/posts/{post_id}/comments",
+      "operationId": "create_comments"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/posts/{post_id}/comments/{id}/",
+      "operationId": "show_comment"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/posts/{post_id}/comments/{id}/",
+      "operationId": "delete_comments"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/posts/{post_id}/mute",
+      "operationId": "create_mute"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/posts/{post_id}/mute",
+      "operationId": "delete_mute"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/posts/{post_id}/reactions",
+      "operationId": "list_reactions"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/posts/{post_id}/reactions",
+      "operationId": "create_reactions"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/posts/{post_id}/reactions",
+      "operationId": "delete_reactions"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/purchases",
+      "operationId": "list_purchases"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/purchases/{id}/",
+      "operationId": "show_purchase"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/purchases/{id}/",
+      "operationId": "delete_purchases"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/spaces",
+      "operationId": "list_spaces"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/spaces",
+      "operationId": "create_spaces"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/spaces/{id}",
+      "operationId": "show_space"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/v1/networks/{network_id}/spaces/{id}",
+      "operationId": "replace_spaces"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/v1/networks/{network_id}/spaces/{id}",
+      "operationId": "update_spaces"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/spaces/{id}",
+      "operationId": "delete_spaces"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/spaces/{space_id}/courseworks",
+      "operationId": "list_courseworks"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/spaces/{space_id}/courseworks",
+      "operationId": "create_courseworks"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/spaces/{space_id}/courseworks/{id}/",
+      "operationId": "show_coursework"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/v1/networks/{network_id}/spaces/{space_id}/courseworks/{id}/",
+      "operationId": "replace_courseworks"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/v1/networks/{network_id}/spaces/{space_id}/courseworks/{id}/",
+      "operationId": "update_courseworks"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/spaces/{space_id}/courseworks/{id}/",
+      "operationId": "delete_courseworks"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/spaces/{space_id}/members",
+      "operationId": "list_members"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/spaces/{space_id}/members",
+      "operationId": "create_members"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/spaces/{space_id}/members/{user_id}/",
+      "operationId": "show_member"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/v1/networks/{network_id}/spaces/{space_id}/members/{user_id}/",
+      "operationId": "replace_members"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/v1/networks/{network_id}/spaces/{space_id}/members/{user_id}/",
+      "operationId": "update_members"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/spaces/{space_id}/members/{user_id}/",
+      "operationId": "delete_members"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/spaces/{space_id}/members/{user_id}/ban",
+      "operationId": "create_members"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/subscriptions",
+      "operationId": "list_subscriptions"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/subscriptions/{id}",
+      "operationId": "show_subscription"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/subscriptions/{id}",
+      "operationId": "delete_subscriptions"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/tags",
+      "operationId": "list_tags"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/v1/networks/{network_id}/tags",
+      "operationId": "create_tags"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/v1/networks/{network_id}/tags/{id}/",
+      "operationId": "show_tag"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/v1/networks/{network_id}/tags/{id}/",
+      "operationId": "replace_tags"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/v1/networks/{network_id}/tags/{id}/",
+      "operationId": "update_tags"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/v1/networks/{network_id}/tags/{id}/",
+      "operationId": "delete_tags"
+    }
+  ]
+}

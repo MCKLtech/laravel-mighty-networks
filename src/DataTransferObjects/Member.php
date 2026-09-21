@@ -52,7 +52,7 @@ final readonly class Member
             createdAt: self::date((string) ($data['created_at'] ?? '')),
             updatedAt: self::date((string) ($data['updated_at'] ?? '')),
             email: (string) ($data['email'] ?? ''),
-            memberType: MemberType::from((string) ($data['member_type'] ?? MemberType::Full->value)),
+            memberType: MemberType::tryFrom((string) ($data['member_type'] ?? '')) ?? MemberType::Full,
             permalink: (string) ($data['permalink'] ?? ''),
             firstName: self::stringOrNull($data, 'first_name'),
             lastName: self::stringOrNull($data, 'last_name'),

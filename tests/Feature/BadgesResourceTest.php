@@ -8,6 +8,7 @@ use MCKLtech\MightyNetworks\Collections\BadgeCollection;
 use MCKLtech\MightyNetworks\DataTransferObjects\Badge;
 use MCKLtech\MightyNetworks\DataTransferObjects\NewBadgeData;
 use MCKLtech\MightyNetworks\DataTransferObjects\UpdateBadgeData;
+use MCKLtech\MightyNetworks\Exceptions\NotFoundException;
 use MCKLtech\MightyNetworks\Requests\Admin\Badges\AddBadgeToMemberRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Badges\CreateBadgeRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Badges\DeleteBadgeRequest;
@@ -205,5 +206,102 @@ final class BadgesResourceTest extends TestCase
                 && $request->getMethod() === Method::DELETE
                 && $request->resolveEndpoint() === 'networks/12345/members/7/badges/8/';
         });
+    }
+
+    public function test_find_by_id_or_null_returns_null_on_a_404(): void
+    {
+        $mock = new MockClient([MockResponse::make(['error' => 'Badge not found'], 404)]);
+
+        $resource = new BadgesResource($this->admin($mock), '12345');
+
+        $this->assertNull($resource->findByIdOrNull(8));
+    }
+
+    public function test_paginate_yields_badges_across_pages(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->badgePayload(['id' => 1])],
+                'links' => ['next' => 'https://api.mn.co/...?page=2'],
+            ], 200),
+            MockResponse::make([
+                'items' => [$this->badgePayload(['id' => 2])],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new BadgesResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        foreach ($resource->paginate(perPage: 50)->items() as $badge) {
+            $this->assertInstanceOf(Badge::class, $badge);
+            $ids[] = $badge->id;
+        }
+
+        $this->assertSame([1, 2], $ids);
+        $mock->assertSentCount(2);
+        $mock->assertSent(function ($request): bool {
+            return $request instanceof ListBadgesRequest
+                && $request->resolveEndpoint() === 'networks/12345/badges'
+                && $request->query()->get('per_page') === 50;
+        });
+    }
+
+    public function test_each_runs_a_callback_over_every_badge(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->badgePayload(['id' => 1])],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new BadgesResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        $resource->each(static function (Badge $badge) use (&$ids): void {
+            $ids[] = $badge->id;
+        });
+
+        $this->assertSame([1], $ids);
+    }
+
+    public function test_paginate_for_member_uses_the_member_scoped_endpoint(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->badgePayload(['id' => 3])],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new BadgesResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        foreach ($resource->paginateForMember(7, perPage: 10)->items() as $badge) {
+            $this->assertInstanceOf(Badge::class, $badge);
+            $ids[] = $badge->id;
+        }
+
+        $this->assertSame([3], $ids);
+        $mock->assertSent(function ($request): bool {
+            return $request instanceof ListMemberBadgesRequest
+                && $request->resolveEndpoint() === 'networks/12345/members/7/badges'
+                && $request->query()->get('per_page') === 10;
+        });
+    }
+
+    public function test_a_404_throws_a_not_found_exception(): void
+    {
+        $mock = new MockClient([MockResponse::make(['error' => 'Badge not found'], 404)]);
+
+        $resource = new BadgesResource($this->admin($mock), '12345');
+
+        $this->expectException(NotFoundException::class);
+
+        $resource->findById(8);
     }
 }

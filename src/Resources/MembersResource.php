@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace MCKLtech\MightyNetworks\Resources;
 
 use MCKLtech\MightyNetworks\Collections\MemberCollection;
+use MCKLtech\MightyNetworks\Collections\PlanCollection;
+use MCKLtech\MightyNetworks\Collections\SpaceCollection;
 use MCKLtech\MightyNetworks\DataTransferObjects\Member;
 use MCKLtech\MightyNetworks\DataTransferObjects\NewMemberData;
 use MCKLtech\MightyNetworks\DataTransferObjects\UpdateMemberData;
@@ -15,6 +17,8 @@ use MCKLtech\MightyNetworks\Requests\Admin\Members\CreateMemberRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Members\DeleteMemberRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Members\FindMemberByEmailRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Members\GetMemberRequest;
+use MCKLtech\MightyNetworks\Requests\Admin\Members\ListMemberPlansRequest;
+use MCKLtech\MightyNetworks\Requests\Admin\Members\ListMemberSpacesRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Members\ListMembersRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Members\RemoveMemberFromNetworkRequest;
 use MCKLtech\MightyNetworks\Requests\Admin\Members\ReplaceMemberRequest;
@@ -61,6 +65,34 @@ final class MembersResource extends Resource
         } catch (NotFoundException) {
             return null;
         }
+    }
+
+    /**
+     * Fetch the first page of plans a member has access to.
+     */
+    public function plans(int $memberId, int $perPage = 25): PlanCollection
+    {
+        return $this->planCollectionFrom(
+            $this->connector()->send(new ListMemberPlansRequest(
+                $this->networkId(),
+                $memberId,
+                perPage: $perPage,
+            )),
+        );
+    }
+
+    /**
+     * Fetch the first page of spaces a member belongs to.
+     */
+    public function spaces(int $memberId, int $perPage = 25): SpaceCollection
+    {
+        return $this->spaceCollectionFrom(
+            $this->connector()->send(new ListMemberSpacesRequest(
+                $this->networkId(),
+                $memberId,
+                perPage: $perPage,
+            )),
+        );
     }
 
     /**
@@ -160,6 +192,28 @@ final class MembersResource extends Resource
 
         if (! $dto instanceof MemberCollection) {
             throw new MightyNetworksException('Expected a MemberCollection from the members endpoint.');
+        }
+
+        return $dto;
+    }
+
+    private function planCollectionFrom(Response $response): PlanCollection
+    {
+        $dto = $response->dto();
+
+        if (! $dto instanceof PlanCollection) {
+            throw new MightyNetworksException('Expected a PlanCollection from the member plans endpoint.');
+        }
+
+        return $dto;
+    }
+
+    private function spaceCollectionFrom(Response $response): SpaceCollection
+    {
+        $dto = $response->dto();
+
+        if (! $dto instanceof SpaceCollection) {
+            throw new MightyNetworksException('Expected a SpaceCollection from the member spaces endpoint.');
         }
 
         return $dto;

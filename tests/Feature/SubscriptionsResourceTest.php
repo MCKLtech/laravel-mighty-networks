@@ -196,4 +196,24 @@ final class SubscriptionsResourceTest extends TestCase
         $this->assertSame([1, 2], $memberIds);
         $mock->assertSentCount(2);
     }
+
+    public function test_each_runs_a_callback_over_every_subscription(): void
+    {
+        $mock = new MockClient([
+            MockResponse::make([
+                'items' => [$this->subscriptionPayload()],
+                'links' => ['next' => null],
+            ], 200),
+        ]);
+
+        $resource = new SubscriptionsResource($this->admin($mock), '12345');
+
+        $ids = [];
+
+        $resource->each(static function (Subscription $subscription) use (&$ids): void {
+            $ids[] = $subscription->subscription->id;
+        });
+
+        $this->assertSame([555], $ids);
+    }
 }
