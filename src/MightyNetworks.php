@@ -187,9 +187,13 @@ final class MightyNetworks
     /**
      * Rate-limit namespace for this Network's connectors.
      */
-    private function limiterKey(): string
+    private function limiterKey(): ?string
     {
-        return 'mighty-networks:'.$this->networkId();
+        $id = $this->config['network_id'] ?? null;
+
+        return is_int($id) || (is_string($id) && $id !== '')
+            ? 'mighty-networks:'.$id
+            : null;
     }
 
     /**

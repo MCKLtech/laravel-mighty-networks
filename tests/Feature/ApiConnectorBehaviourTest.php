@@ -176,6 +176,14 @@ final class ApiConnectorBehaviourTest extends TestCase
         $a->admin()->send(new TestGraphQLRequest);
     }
 
+    public function test_connectors_construct_without_a_network_id(): void
+    {
+        $client = new MightyNetworks(['admin_token' => 'token', 'access_token' => 'oauth']);
+
+        $this->assertInstanceOf(AdminConnector::class, $client->admin());
+        $this->assertInstanceOf(GraphQLConnector::class, $client->graphql());
+    }
+
     public function test_rate_limiting_can_be_disabled(): void
     {
         $connector = new AdminConnector(
