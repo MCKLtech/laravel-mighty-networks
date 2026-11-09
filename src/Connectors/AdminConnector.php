@@ -34,6 +34,7 @@ final class AdminConnector extends ApiConnector
         array $retry = [],
         array $rateLimits = [],
         ?Repository $cache = null,
+        ?string $limiterKey = null,
     ) {
         parent::__construct(
             baseUrl: $baseUrl,
@@ -41,6 +42,7 @@ final class AdminConnector extends ApiConnector
             retry: $retry,
             rateLimits: $rateLimits,
             cache: $cache,
+            limiterKey: $limiterKey,
         );
     }
 

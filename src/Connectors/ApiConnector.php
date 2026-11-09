@@ -50,6 +50,7 @@ abstract class ApiConnector extends Connector implements HasPagination
         protected readonly array $retry = [],
         protected readonly array $rateLimits = [],
         protected readonly ?Repository $cache = null,
+        protected readonly ?string $limiterKey = null,
     ) {
         $this->configureRetries();
 
@@ -141,6 +142,17 @@ abstract class ApiConnector extends Connector implements HasPagination
         }
 
         return $limits;
+    }
+
+    /**
+     * Namespace the rate-limit counters per network, so networks sharing a
+     * cache store never share a limit. Falls back to Saloon's per-class prefix.
+     */
+    protected function getLimiterPrefix(): ?string
+    {
+        $class = (new \ReflectionClass($this))->getShortName();
+
+        return $this->limiterKey === null ? $class : $this->limiterKey.':'.$class;
     }
 
     /**

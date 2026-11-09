@@ -48,6 +48,7 @@ final class GraphQLConnector extends ApiConnector
         private readonly ?OAuthClient $oauth = null,
         private readonly ?TokenStore $tokenStore = null,
         private readonly string $oauthKey = 'default',
+        ?string $limiterKey = null,
     ) {
         parent::__construct(
             baseUrl: $baseUrl,
@@ -55,6 +56,7 @@ final class GraphQLConnector extends ApiConnector
             retry: $retry,
             rateLimits: $rateLimits,
             cache: $cache,
+            limiterKey: $limiterKey,
         );
     }
 

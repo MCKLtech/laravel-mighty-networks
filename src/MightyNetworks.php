@@ -185,6 +185,14 @@ final class MightyNetworks
     }
 
     /**
+     * Rate-limit namespace for this Network's connectors.
+     */
+    private function limiterKey(): string
+    {
+        return 'mighty-networks:'.$this->networkId();
+    }
+
+    /**
      * The Admin REST connector for this Network.
      */
     public function admin(): AdminConnector
@@ -196,6 +204,7 @@ final class MightyNetworks
             retry: $this->arrayConfig('retry'),
             rateLimits: $this->arrayConfig('rate_limits'),
             cache: $this->cache,
+            limiterKey: $this->limiterKey(),
         );
     }
 
@@ -214,6 +223,7 @@ final class MightyNetworks
             oauth: $this->oauthClient(),
             tokenStore: $this->tokenStore(),
             oauthKey: $this->name,
+            limiterKey: $this->limiterKey(),
         );
     }
 

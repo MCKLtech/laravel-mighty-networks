@@ -13,6 +13,7 @@ use MCKLtech\MightyNetworks\Exceptions\AuthenticationException;
 use MCKLtech\MightyNetworks\Exceptions\ForbiddenException;
 use MCKLtech\MightyNetworks\Exceptions\NotFoundException;
 use MCKLtech\MightyNetworks\Exceptions\ValidationException;
+use MCKLtech\MightyNetworks\MightyNetworks;
 use MCKLtech\MightyNetworks\Tests\Support\TestGraphQLRequest;
 use MCKLtech\MightyNetworks\Tests\TestCase;
 use Saloon\Http\Faking\MockClient;
@@ -153,6 +154,26 @@ final class ApiConnectorBehaviourTest extends TestCase
         $this->expectException(RateLimitReachedException::class);
 
         $second->send(new TestGraphQLRequest);
+    }
+
+    public function test_rate_limits_are_not_shared_between_networks_on_one_cache(): void
+    {
+        $cache = $this->cache();
+
+        $a = MightyNetworks::make('token', 111, ['rate_limits' => ['per_minute' => 1]], $cache);
+        $b = MightyNetworks::make('token', 222, ['rate_limits' => ['per_minute' => 1]], $cache);
+
+        $a->admin()->withMockClient(new MockClient([MockResponse::make(['data' => ['ok' => true]], 200), MockResponse::make(['data' => ['ok' => true]], 200)]));
+        $b->admin()->withMockClient(new MockClient([MockResponse::make(['data' => ['ok' => true]], 200)]));
+
+        $a->admin()->send(new TestGraphQLRequest);
+        $b->admin()->send(new TestGraphQLRequest);
+
+        $this->assertTrue($a->admin()->hasReachedRateLimit());
+
+        $this->expectException(RateLimitReachedException::class);
+
+        $a->admin()->send(new TestGraphQLRequest);
     }
 
     public function test_rate_limiting_can_be_disabled(): void
