@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace MCKLtech\MightyNetworks\Tests\Feature;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use MCKLtech\MightyNetworks\Events\WebhookReceived;
 use MCKLtech\MightyNetworks\Tests\TestCase;
 use MCKLtech\MightyNetworks\Webhooks\Jobs\ProcessWebhookJob;
+use MCKLtech\MightyNetworks\Webhooks\Middleware\VerifyWebhookSecret;
+use MCKLtech\MightyNetworks\Webhooks\WebhookController;
 use MCKLtech\MightyNetworks\Webhooks\WebhookEnvelope;
 
 final class WebhookEndpointTest extends TestCase
@@ -25,7 +28,14 @@ final class WebhookEndpointTest extends TestCase
         $app['config']->set('mighty-networks.webhooks.enabled', true);
         $app['config']->set('mighty-networks.webhooks.path', 'webhooks/mighty-networks');
         $app['config']->set('mighty-networks.webhooks.secret', self::SECRET);
-        $app['config']->set('mighty-networks.webhooks.tolerance', 300);
+    }
+
+    protected function tearDown(): void
+    {
+        VerifyWebhookSecret::resolveSecretUsing(null);
+        WebhookController::resolveNetworkUsing(null);
+
+        parent::tearDown();
     }
 
     /**
@@ -108,6 +118,7 @@ final class WebhookEndpointTest extends TestCase
     public function test_a_stale_timestamp_beyond_tolerance_is_rejected(): void
     {
         Queue::fake();
+        config()->set('mighty-networks.webhooks.tolerance', 300);
 
         $this->withHeader('Authorization', 'Bearer '.self::SECRET)
             ->postJson(self::URL, $this->payload([
@@ -121,6 +132,7 @@ final class WebhookEndpointTest extends TestCase
     public function test_a_future_timestamp_beyond_tolerance_is_rejected(): void
     {
         Queue::fake();
+        config()->set('mighty-networks.webhooks.tolerance', 300);
 
         $this->withHeader('Authorization', 'Bearer '.self::SECRET)
             ->postJson(self::URL, $this->payload([
@@ -163,8 +175,8 @@ final class WebhookEndpointTest extends TestCase
             '{"event_id": ',
         );
 
-        // The verifier cannot read a timestamp from a malformed body, so this
-        // is a 403 rather than a 500 -- the important part is that it is not a
+        // The verifier refuses a body that is not a JSON object, so this is a
+        // 403 rather than a 500 -- the important part is that it is not a
         // server error.
         $response->assertStatus(403);
         Queue::assertNothingPushed();
@@ -206,5 +218,121 @@ final class WebhookEndpointTest extends TestCase
         dispatch(new ProcessWebhookJob(WebhookEnvelope::fromArray($this->payload(['event_id' => 'second']))));
 
         Event::assertDispatchedTimes(WebhookReceived::class, 2);
+    }
+
+    public function test_timestamps_are_not_checked_by_default_so_late_retries_are_accepted(): void
+    {
+        Queue::fake();
+
+        $this->withHeader('Authorization', 'Bearer '.self::SECRET)
+            ->postJson(self::URL, $this->payload([
+                'event_timestamp' => CarbonImmutable::now()->subHours(6)->toIso8601String(),
+            ]))
+            ->assertStatus(202);
+
+        Queue::assertPushed(ProcessWebhookJob::class);
+    }
+
+    public function test_a_secret_resolver_gives_each_network_its_own_secret(): void
+    {
+        Queue::fake();
+
+        $secrets = [1 => 'secret-for-network-one', 2 => 'secret-for-network-two'];
+
+        VerifyWebhookSecret::resolveSecretUsing(
+            static fn (Request $request): ?string => $secrets[$request->json('payload.network_id')] ?? null,
+        );
+
+        $this->withHeader('Authorization', 'Bearer secret-for-network-two')
+            ->postJson(self::URL, $this->payload(['payload' => ['network_id' => 2]]))
+            ->assertStatus(202);
+
+        // Network one's secret does not open network two's deliveries.
+        $this->withHeader('Authorization', 'Bearer secret-for-network-one')
+            ->postJson(self::URL, $this->payload(['payload' => ['network_id' => 2]]))
+            ->assertStatus(403);
+
+        Queue::assertPushed(ProcessWebhookJob::class, 1);
+    }
+
+    public function test_a_secret_resolver_replaces_the_configured_secret(): void
+    {
+        Queue::fake();
+
+        VerifyWebhookSecret::resolveSecretUsing(static fn (Request $request): ?string => null);
+
+        $this->withHeader('Authorization', 'Bearer '.self::SECRET)
+            ->postJson(self::URL, $this->payload())
+            ->assertStatus(403);
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_the_job_carries_the_network_id_from_the_payload(): void
+    {
+        Queue::fake();
+
+        $this->withHeader('Authorization', 'Bearer '.self::SECRET)
+            ->postJson(self::URL, $this->payload(['payload' => ['network_id' => 90000823]]))
+            ->assertStatus(202);
+
+        Queue::assertPushed(ProcessWebhookJob::class, fn (ProcessWebhookJob $job): bool => $job->network === '90000823');
+    }
+
+    public function test_a_network_resolver_names_the_network_when_the_payload_does_not(): void
+    {
+        Queue::fake();
+
+        WebhookController::resolveNetworkUsing(
+            static fn (Request $request, WebhookEnvelope $envelope): ?string => $request->header('X-Network'),
+        );
+
+        // Comment payloads carry no network_id.
+        $this->withHeaders(['Authorization' => 'Bearer '.self::SECRET, 'X-Network' => 'acme'])
+            ->postJson(self::URL, $this->payload(['event_type' => 'CommentCreatedHook']))
+            ->assertStatus(202);
+
+        Queue::assertPushed(ProcessWebhookJob::class, fn (ProcessWebhookJob $job): bool => $job->network === 'acme');
+    }
+
+    public function test_the_same_event_id_from_two_networks_is_processed_for_each(): void
+    {
+        $networks = [];
+        Event::listen(WebhookReceived::class, function (WebhookReceived $event) use (&$networks): void {
+            $networks[] = $event->network;
+        });
+
+        $envelope = WebhookEnvelope::fromArray($this->payload());
+
+        dispatch(new ProcessWebhookJob($envelope, 'one'));
+        dispatch(new ProcessWebhookJob($envelope, 'two'));
+        dispatch(new ProcessWebhookJob($envelope, 'two'));
+
+        $this->assertSame(['one', 'two'], $networks);
+    }
+
+    public function test_an_event_whose_listener_fails_is_processed_again_on_retry(): void
+    {
+        $attempts = 0;
+        Event::listen(WebhookReceived::class, function () use (&$attempts): void {
+            if (++$attempts === 1) {
+                throw new \RuntimeException('listener failed');
+            }
+        });
+
+        $envelope = WebhookEnvelope::fromArray($this->payload());
+
+        try {
+            dispatch(new ProcessWebhookJob($envelope));
+            $this->fail('The listener failure should reach the queue so the job is retried.');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('listener failed', $e->getMessage());
+        }
+
+        dispatch(new ProcessWebhookJob($envelope));
+        dispatch(new ProcessWebhookJob($envelope));
+
+        // Failed once, succeeded on the retry, then skipped as a duplicate.
+        $this->assertSame(2, $attempts);
     }
 }

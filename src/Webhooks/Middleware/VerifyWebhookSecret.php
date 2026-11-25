@@ -19,14 +19,37 @@ use Symfony\Component\HttpFoundation\Response;
  *     Authorization: Bearer YOUR_CONFIGURED_API_KEY
  *
  * Authenticity is therefore a constant-time {@see hash_equals()} comparison of
- * the presented token against `mighty-networks.webhooks.secret`. A timestamp
- * tolerance (config `mighty-networks.webhooks.tolerance`, default 300 seconds)
- * is additionally enforced against `event_timestamp` to limit replay.
+ * the presented token against `mighty-networks.webhooks.secret`, or against
+ * the secret returned by {@see self::resolveSecretUsing()} when an application
+ * keeps one secret per network.
+ *
+ * `event_timestamp` is not checked unless `mighty-networks.webhooks.tolerance`
+ * is set. The body is not signed, so whoever holds the secret can send any
+ * timestamp, and a tolerance would refuse retries that arrive hours later if
+ * they keep their original timestamp.
  *
  * The secret is never logged and never echoed in the error response.
  */
 final class VerifyWebhookSecret
 {
+    /**
+     * @var (Closure(Request): (string|null))|null
+     */
+    private static ?Closure $secretResolver = null;
+
+    /**
+     * Choose the expected secret for each request, for example the secret of
+     * the network named in the route. Returning null or an empty string refuses
+     * the delivery. While a resolver is set, `mighty-networks.webhooks.secret`
+     * is not read. Pass null to go back to the configured secret.
+     *
+     * @param  (Closure(Request): (string|null))|null  $resolver
+     */
+    public static function resolveSecretUsing(?Closure $resolver): void
+    {
+        self::$secretResolver = $resolver;
+    }
+
     /**
      * @param  Closure(Request): (Response)  $next
      */
@@ -41,7 +64,9 @@ final class VerifyWebhookSecret
 
     private function verify(Request $request): bool
     {
-        $secret = config('mighty-networks.webhooks.secret');
+        $secret = self::$secretResolver === null
+            ? config('mighty-networks.webhooks.secret')
+            : (self::$secretResolver)($request);
 
         if (! is_string($secret) || $secret === '') {
             // Fail closed: an unconfigured secret can never authenticate.
@@ -58,7 +83,10 @@ final class VerifyWebhookSecret
             return false;
         }
 
-        return $this->timestampIsFresh($request);
+        $body = json_decode($request->getContent(), true);
+
+        // A body that is not a JSON object is refused whatever the tolerance.
+        return is_array($body) && $this->timestampIsFresh($body);
     }
 
     /**
@@ -92,15 +120,21 @@ final class VerifyWebhookSecret
         return hash_equals($expected, $presented);
     }
 
-    private function timestampIsFresh(Request $request): bool
+    /**
+     * @param  array<array-key, mixed>  $body
+     */
+    private function timestampIsFresh(array $body): bool
     {
-        $decoded = json_decode($request->getContent(), true);
+        $tolerance = config('mighty-networks.webhooks.tolerance');
 
-        if (! is_array($decoded)) {
-            return false;
+        if (! is_numeric($tolerance)) {
+            // No tolerance configured: the timestamp is not checked.
+            return true;
         }
 
-        $raw = $decoded['event_timestamp'] ?? null;
+        $tolerance = max(0, (int) $tolerance);
+
+        $raw = $body['event_timestamp'] ?? null;
 
         if (! is_string($raw) || trim($raw) === '') {
             return false;
@@ -110,12 +144,6 @@ final class VerifyWebhookSecret
             $eventTime = CarbonImmutable::parse($raw);
         } catch (\Throwable) {
             return false;
-        }
-
-        $tolerance = (int) config('mighty-networks.webhooks.tolerance', 300);
-
-        if ($tolerance < 0) {
-            $tolerance = 0;
         }
 
         return abs($eventTime->getTimestamp() - CarbonImmutable::now()->getTimestamp()) <= $tolerance;

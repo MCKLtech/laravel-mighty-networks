@@ -9,9 +9,9 @@ use PHPUnit\Framework\TestCase;
 
 final class WebhookEventTypeTest extends TestCase
 {
-    public function test_it_has_all_forty_seven_sdl_values(): void
+    public function test_it_has_all_forty_seven_sdl_values_and_member_returned(): void
     {
-        $this->assertCount(47, WebhookEventType::cases());
+        $this->assertCount(48, WebhookEventType::cases());
 
         $this->assertSame('POST_CREATED', WebhookEventType::PostCreated->value);
         $this->assertSame('MEMBER_JOINED', WebhookEventType::MemberJoined->value);
@@ -50,6 +50,12 @@ final class WebhookEventTypeTest extends TestCase
             WebhookEventType::MemberSubscriptionCanceled,
             WebhookEventType::fromEventName('MEMBER_SUBSCRIPTION_CANCELED'),
         );
+    }
+
+    public function test_member_returned_is_resolved_although_it_is_not_in_the_sdl(): void
+    {
+        $this->assertSame(WebhookEventType::MemberReturned, WebhookEventType::fromEventName('MemberReturnedHook'));
+        $this->assertSame('MEMBER_RETURNED', WebhookEventType::MemberReturned->value);
     }
 
     public function test_from_event_name_returns_null_for_unknown_or_empty_names(): void

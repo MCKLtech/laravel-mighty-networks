@@ -18,9 +18,13 @@ use MCKLtech\MightyNetworks\Webhooks\WebhookEnvelope;
  *
  * Mighty Networks retries any non-2xx delivery up to five times over several
  * hours, so identical envelopes can arrive more than once. Idempotency is
- * enforced with an atomic {@see Cache::add()} guard keyed on `event_id`: the
- * first delivery wins and later duplicates are discarded without dispatching
- * {@see WebhookReceived} again.
+ * enforced with an atomic {@see Cache::add()} guard keyed on the network (when
+ * known) and `event_id`: the first delivery wins and later duplicates are
+ * discarded without dispatching {@see WebhookReceived} again.
+ *
+ * The guard is released when a listener throws, so the event is not lost: the
+ * exception fails the job, and a retry of the job or of the delivery processes
+ * the event again.
  *
  * The guard is intentionally a cache lock rather than `ShouldBeUnique` so it
  * also protects deliveries that were already queued (or that were never
@@ -40,6 +44,7 @@ final class ProcessWebhookJob implements ShouldQueue
 
     public function __construct(
         public readonly WebhookEnvelope $envelope,
+        public readonly ?string $network = null,
     ) {}
 
     public function handle(Dispatcher $events): void
@@ -47,17 +52,25 @@ final class ProcessWebhookJob implements ShouldQueue
         if ($this->envelope->eventId === '') {
             // Without an id there is nothing to de-duplicate against, so every
             // delivery is processed rather than silently dropped.
-            $events->dispatch(new WebhookReceived($this->envelope));
+            $events->dispatch(new WebhookReceived($this->envelope, $this->network));
 
             return;
         }
 
-        $key = 'mighty-networks:webhook:'.$this->envelope->eventId;
+        $key = 'mighty-networks:webhook:'
+            .($this->network === null ? '' : $this->network.':')
+            .$this->envelope->eventId;
 
         if (! Cache::add($key, true, self::IDEMPOTENCY_TTL_SECONDS)) {
             return;
         }
 
-        $events->dispatch(new WebhookReceived($this->envelope));
+        try {
+            $events->dispatch(new WebhookReceived($this->envelope, $this->network));
+        } catch (\Throwable $e) {
+            Cache::forget($key);
+
+            throw $e;
+        }
     }
 }

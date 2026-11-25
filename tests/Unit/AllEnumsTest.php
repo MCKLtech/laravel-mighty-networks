@@ -278,6 +278,7 @@ final class AllEnumsTest extends TestCase
                 ['MemberPurchased', 'MEMBER_PURCHASED', 'Member Purchased'],
                 ['MemberPurchaseRequested', 'MEMBER_PURCHASE_REQUESTED', 'Member Purchase Requested'],
                 ['MemberRemovedFromPlan', 'MEMBER_REMOVED_FROM_PLAN', 'Member Removed From Plan'],
+                ['MemberReturned', 'MEMBER_RETURNED', 'Member Returned'],
                 ['MemberSubscriptionCanceled', 'MEMBER_SUBSCRIPTION_CANCELED', 'Member Subscription Canceled'],
                 ['MemberSubscriptionRenewed', 'MEMBER_SUBSCRIPTION_RENEWED', 'Member Subscription Renewed'],
                 ['MemberTagAdded', 'MEMBER_TAG_ADDED', 'Member Tag Added'],

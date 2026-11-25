@@ -94,7 +94,7 @@ network.
 | `retry.*` | Attempts, interval and exponential backoff. |
 | `rate_limits.*` | Client-side throttling (Mighty Networks exposes no rate-limit headers). |
 | `cache.*` | Response caching (GET requests only). |
-| `webhooks.*` | Webhook receiving route, secret and timestamp tolerance. |
+| `webhooks.*` | Webhook receiving route, secret and optional timestamp tolerance. |
 
 ### Multiple networks
 
@@ -856,15 +856,15 @@ MIGHTY_NETWORKS_WEBHOOK_SECRET=your-shared-secret
     'enabled' => true,
     'path' => 'webhooks/mighty-networks',
     'secret' => env('MIGHTY_NETWORKS_WEBHOOK_SECRET'),
-    'tolerance' => 300,
+    'tolerance' => null,
 ],
 ```
 
 The route `POST /webhooks/mighty-networks` is then registered and will:
 
 1. Verify the `Authorization: Bearer` secret in **constant time** (`hash_equals`).
-2. Reject deliveries whose `event_timestamp` falls outside the tolerance window (replay defence).
-3. Dispatch a queued job that is **idempotent per `event_id`**, so retries cannot double-process.
+2. Refuse a body that is not a JSON object.
+3. Dispatch a queued job that is **idempotent per network and `event_id`**, so retries cannot double-process.
 4. Fire a `WebhookReceived` event for your application to listen to.
 
 Returns a fast `202` so Mighty Networks does not retry unnecessarily.
@@ -883,9 +883,71 @@ Event::listen(WebhookReceived::class, function (WebhookReceived $event): void {
 > secret arrives as a Bearer token and is compared in constant time. Do not reach for Stripe-style
 > signature verification.
 
-Unknown event types are handled gracefully — they will not 500. The full 47-value
-`WebhookEventType` enum is provided, with normalisation across the three spellings Mighty Networks
-uses (`POST_CREATED`, `PostCreated`, `MemberJoinedHook`).
+Unknown event types are handled gracefully — they will not 500. `WebhookEventType` has the 47
+values of the GraphQL SDL plus `MemberReturned`, which Mighty Networks sends (`MemberReturnedHook`)
+but the SDL does not list. Names are normalised across the three spellings Mighty Networks uses
+(`POST_CREATED`, `PostCreated`, `MemberJoinedHook`).
+
+### Several networks
+
+By default one secret (`webhooks.secret`) guards the route. To keep a secret per network, register
+a resolver, for example in a service provider's `boot()`. While it is set the configured secret is
+not read, and returning `null` refuses the delivery:
+
+```php
+use Illuminate\Http\Request;
+use MCKLtech\MightyNetworks\Webhooks\Middleware\VerifyWebhookSecret;
+use MCKLtech\MightyNetworks\Webhooks\WebhookController;
+use MCKLtech\MightyNetworks\Webhooks\WebhookEnvelope;
+
+VerifyWebhookSecret::resolveSecretUsing(
+    fn (Request $request): ?string => Network::find($request->route('network'))?->webhook_secret,
+);
+
+// Your own route, one URL per network, using the package's middleware and controller.
+Route::post('webhooks/mighty-networks/{network}', WebhookController::class)
+    ->middleware(VerifyWebhookSecret::class);
+```
+
+The job's idempotency key is `mighty-networks:webhook:{network}:{event_id}`, and
+`WebhookReceived::$network` carries the same value. The network is `payload.network_id` when the
+payload has one. Some payloads don't (comments, for one), so name it yourself when you can:
+
+```php
+WebhookController::resolveNetworkUsing(
+    fn (Request $request, WebhookEnvelope $envelope): ?string => $request->route('network'),
+);
+```
+
+### Timestamps and retries
+
+`event_timestamp` is not checked unless you set `webhooks.tolerance` (seconds). The body is not
+signed, so anyone holding the secret can send any timestamp, and Mighty Networks retries failed
+deliveries for several hours: if those retries keep their original timestamp (we have not
+confirmed it), a tolerance refuses them with a 403. In 1.0.0 the default was 300.
+
+### When a listener fails
+
+If a `WebhookReceived` listener throws, the job fails and the event's idempotency claim is
+released, so a retry of the job or of the delivery processes the event again. Every listener runs
+again on that retry, including the ones that succeeded, so make listeners idempotent.
+
+### What is really sent
+
+[docs/webhooks.md](docs/webhooks.md) has an example of each of the 14 event types we have captured,
+with made-up identifying values. The points that most affect handling:
+
+- **Network or space:** on `MemberJoinedHook` and `MemberLeftHook`, `space_id` equal to
+  `network_id` means the whole network; any other value is a space. Joining or leaving the network
+  also sends one message per space.
+- **Course messages repeat:** `MemberCourseProgressStartedHook`, `…UpdatedHook` and
+  `…CompletedHook` are sent again with a new `event_id` and no new progress (a completion arrived
+  8 times in 20 seconds). `event_id` idempotency does not catch these; compare the state.
+- **Comments and reactions are flat:** no `member` object. The member is `payload.author_id` on a
+  comment and `payload.member_id` on a reaction. Comments have no `network_id`.
+- **Order:** messages do not always arrive in `event_timestamp` order.
+- **`progress_percent`** is a whole number from 0 to 100.
+- **A member who is deleted and added again** gets a new member id.
 
 ## Queues and rate limiting
 

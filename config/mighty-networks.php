@@ -117,7 +117,12 @@ return [
     | Webhook receiving routes are registered only when `enabled` is true.
     | Mighty Networks does NOT HMAC-sign webhooks: the configured `secret` is
     | delivered as `Authorization: Bearer <secret>` and compared in constant
-    | time. `tolerance` is the accepted age of `event_timestamp`, in seconds.
+    | time. An application with one secret per network supplies it with
+    | VerifyWebhookSecret::resolveSecretUsing() instead.
+    |
+    | `tolerance` is the accepted distance of `event_timestamp` from now, in
+    | seconds. It is null (not checked) by default: the body is unsigned, so
+    | the timestamp proves nothing, and a tolerance can refuse late retries.
     |
     */
 
@@ -125,7 +130,7 @@ return [
         'enabled' => false,
         'path' => 'webhooks/mighty-networks',
         'secret' => env('MIGHTY_NETWORKS_WEBHOOK_SECRET'),
-        'tolerance' => 300,
+        'tolerance' => null,
     ],
 
 ];

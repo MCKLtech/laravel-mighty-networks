@@ -12,6 +12,11 @@ namespace MCKLtech\MightyNetworks\Enums;
  * arrive as `POST_CREATED`, `PostCreated` or as a GraphQL payload type such as
  * `MemberJoinedHook`. Use {@see WebhookEventType::fromEventName()} to normalise
  * any of those spellings before matching.
+ *
+ * {@see self::MemberReturned} is the exception: Mighty Networks delivers
+ * `MemberReturnedHook`, but the SDL this enum was built from has no
+ * `MEMBER_RETURNED` value, so a callback may not be able to subscribe to it by
+ * name.
  */
 enum WebhookEventType: string
 {
@@ -43,6 +48,7 @@ enum WebhookEventType: string
     case MemberPurchased = 'MEMBER_PURCHASED';
     case MemberPurchaseRequested = 'MEMBER_PURCHASE_REQUESTED';
     case MemberRemovedFromPlan = 'MEMBER_REMOVED_FROM_PLAN';
+    case MemberReturned = 'MEMBER_RETURNED';
     case MemberSubscriptionCanceled = 'MEMBER_SUBSCRIPTION_CANCELED';
     case MemberSubscriptionRenewed = 'MEMBER_SUBSCRIPTION_RENEWED';
     case MemberTagAdded = 'MEMBER_TAG_ADDED';
