@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-25
+
 ### Added
 
 - `WebhookEventType::MemberReturned` (`MEMBER_RETURNED`). `MemberReturnedHook` is delivered but is not in the GraphQL SDL, and used to resolve to `null`.
