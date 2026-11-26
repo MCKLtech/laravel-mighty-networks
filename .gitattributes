@@ -1,0 +1,11 @@
+* text=auto eol=lf
+
+# Left out of the archive Composer downloads (`composer require` with dist).
+/.editorconfig      export-ignore
+/.gitattributes     export-ignore
+/.github            export-ignore
+/.gitignore         export-ignore
+/phpstan.neon.dist  export-ignore
+/phpunit.xml.dist   export-ignore
+/pint.json          export-ignore
+/tests              export-ignore

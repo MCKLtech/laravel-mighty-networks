@@ -139,7 +139,17 @@ $client = MightyNetworks::make($adminToken, $networkId, [
     'base_url' => 'https://eu.api.mn.co',
 ]);
 
-// From a complete config array.
+// From a complete config array. Container-free, so there is no cache unless you pass a
+// repository as the third argument: rate limits are counted in memory for this process
+// only, and OAuth tokens are not kept.
+$client = new MightyNetworks($tenant->mn_config, 'acme');
+```
+
+Through the facade, `withConfig()` does the same and wires the cache store for you:
+
+```php
+use MCKLtech\MightyNetworks\Facades\MightyNetworks;
+
 $client = MightyNetworks::withConfig($tenant->mn_config, 'acme');
 ```
 
@@ -537,8 +547,9 @@ $poll = MightyNetworks::polls()->create(new NewPollData(
 
 ### Assets
 
-Asset uploads are `multipart/form-data`. There are three variants, all returning an `Asset` whose
-`id` other endpoints reference. The SDK checks the 25 MB cap client-side before sending.
+Asset uploads are `multipart/form-data`. There are four variants, all returning an `Asset` whose
+`id` other endpoints reference. The SDK checks the 25 MB cap client-side before sending a file,
+raw contents or base64; a URL upload is fetched by the API, so it is not checked here.
 
 ```php
 use MCKLtech\MightyNetworks\Facades\MightyNetworks;
@@ -551,7 +562,14 @@ $asset = MightyNetworks::assets()->upload(
     assetStyle: AssetStyle::Avatar,
 );
 
-// From raw base64 contents already in memory.
+// From raw binary contents already in memory.
+$asset = MightyNetworks::assets()->uploadContents(
+    $request->file('badge')->getContent(),
+    filename: 'top-contributor.png',
+    contentType: 'image/png',
+);
+
+// From base64 contents already in memory.
 $asset = MightyNetworks::assets()->uploadBase64(
     $base64FromUpload,
     filename: 'top-contributor.png',
@@ -703,7 +721,7 @@ use MCKLtech\MightyNetworks\Requests\GraphQL\NetworkMembersQuery;
 
 // The authenticated viewer, or null when the token has no member node.
 $me = MightyNetworks::graphqlClient()->me();
-$me?->resourceId;   // the integer ID used by the Admin REST API
+$me?->resourceId;   // the Admin REST API's member id, as a string: cast it with (int)
 
 // The Network's public settings. GraphQL calls this field `title`, not `name`.
 $network = MightyNetworks::graphqlClient()->network();
@@ -826,14 +844,24 @@ contract (Laravel-cache-backed by default) and **refreshed transparently** when 
 including persisting the rotated refresh token.
 
 ```php
-$oauth = MightyNetworks::connection('acme')->oauthClient();
+use MCKLtech\MightyNetworks\Facades\MightyNetworks;
+use MCKLtech\MightyNetworks\Support\Pkce;
+
+$connection = MightyNetworks::connection('acme');
+
+// Null when the connection has no `subdomain` or `oauth.client_id`, or has a static access token.
+$oauth = $connection->oauthClient();
+
+// Keep the verifier (in the session, say) until the user comes back.
+$codeVerifier = Pkce::verifier();
+$codeChallenge = Pkce::challenge($codeVerifier);
 
 // Redirect the user to the community host to authorize.
 $url = $oauth->authorizationUrl($state, $codeChallenge, scopes: ['read:network']);
 
-// Exchange the returned code (PKCE).
+// Exchange the returned code (PKCE), and store the token under the connection's name.
 $token = $oauth->exchangeCode($code, $codeVerifier);
-$store->put('acme', $token);
+$connection->tokenStore()->put($connection->getName(), $token);
 ```
 
 Once a token is stored, GraphQL requests authenticate themselves — you never touch the token again.
@@ -991,10 +1019,12 @@ Only successful `GET` requests are cached. Caching also reduces pressure on your
 
 ## Error handling
 
-Every failure surfaces as a typed exception, all extending `MightyNetworksException`:
+Every failed request surfaces as a typed exception extending
+`MCKLtech\MightyNetworks\Exceptions\RequestException`:
 
 | Exception | Raised when |
 | --- | --- |
+| `RequestException` | Any other failed request; the parent of every exception below |
 | `AuthenticationException` | 401, `UNAUTHENTICATED`, or a rejected OAuth refresh |
 | `ForbiddenException` | 403 or `FORBIDDEN` (missing scope or permission) |
 | `NotFoundException` | 404 or `NOT_FOUND` |
@@ -1016,6 +1046,10 @@ try {
 
 The exception classes extend Saloon's own tree, so **retries keep working**: transient network
 failures and 5xx responses are retried with exponential backoff, while 4xx responses fail fast.
+
+`MightyNetworksException` is a separate class, thrown for problems that are not a response from the
+API: a missing `admin_token`, an asset over 25 MB, a token with no refresh token. It does not catch
+the request exceptions above.
 
 Secrets are never logged: tokens are marked with `#[\SensitiveParameter]`.
 

@@ -38,7 +38,7 @@ abstract class ApiConnector extends Connector implements HasPagination
     use AlwaysThrowOnErrors;
     use HasRateLimits;
 
-    public const DEFAULT_USER_AGENT = 'laravel-mighty-networks/1.0 (+https://github.com/MCKLtech/laravel-mighty-networks)';
+    public const DEFAULT_USER_AGENT = 'laravel-mighty-networks/1 (+https://github.com/MCKLtech/laravel-mighty-networks)';
 
     /**
      * @param  array<string, mixed>  $retry

@@ -47,7 +47,7 @@ return [
             // an HTML bot challenge with HTTP 403. Use `name/version (+url)`.
             'user_agent' => env(
                 'MIGHTY_NETWORKS_USER_AGENT',
-                'laravel-mighty-networks/1.0 (+https://github.com/MCKLtech/laravel-mighty-networks)',
+                'laravel-mighty-networks/1 (+https://github.com/MCKLtech/laravel-mighty-networks)',
             ),
 
             /*

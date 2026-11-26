@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-26
+
+### Changed
+
+- The default `User-Agent` is `laravel-mighty-networks/1 (+…)`. It said `1.0` in 1.1.0. A published config keeps the value it has.
+- `.gitattributes` leaves `tests/`, `.github/` and the tool configs out of the archive Composer downloads.
+
+### Fixed
+
+- README: `withConfig()` was shown on the connection class, where it does not exist. It is on the facade; without the facade, use `new MightyNetworks($config, $name)`.
+- README: request exceptions extend `RequestException`, not `MightyNetworksException`, so catching `MightyNetworksException` does not catch them.
+- README: the OAuth example used an undefined `$store` and did not show the PKCE verifier.
+- README: `assets()->uploadContents()` was missing, and `GraphQLMember::$resourceId` was described as an integer. It is a string.
+
 ## [1.1.0] - 2026-11-25
 
 ### Added
